@@ -1,5 +1,6 @@
-use arangors_lite::collection::options::CreateParameters;
-use arangors_lite::{
+use arangors::collection::options::CreateParameters;
+use arangors::uclient::ClientExt;
+use arangors::{
     collection::{options::CreateOptions, Collection, CollectionType},
     ClientError, Database,
 };
@@ -37,12 +38,12 @@ impl CollectionSchema {
 }
 
 #[maybe_async::maybe_async]
-impl SchemaDatabaseOperation for CollectionSchema {
-    type PoolType = Collection;
+impl<C: ClientExt + Send> SchemaDatabaseOperation<C> for CollectionSchema {
+    type PoolType = Collection<C>;
 
     async fn apply_to_database(
         &self,
-        database: &Database,
+        database: &Database<C>,
         silent: bool,
     ) -> Result<Option<Self::PoolType>, ClientError> {
         log::debug!("Creating Collection {}", &self.name);
@@ -61,13 +62,13 @@ impl SchemaDatabaseOperation for CollectionSchema {
         Self::handle_pool_result(res, silent)
     }
 
-    async fn drop(&self, database: &Database) -> Result<(), ClientError> {
+    async fn drop(&self, database: &Database<C>) -> Result<(), ClientError> {
         log::debug!("Deleting Collection {}", &self.name);
         database.drop_collection(&self.name).await?;
         Ok(())
     }
 
-    async fn get(&self, database: &Database) -> Result<Self::PoolType, ClientError> {
+    async fn get(&self, database: &Database<C>) -> Result<Self::PoolType, ClientError> {
         database.collection(&self.name).await
     }
 }

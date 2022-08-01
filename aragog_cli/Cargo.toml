@@ -56,7 +56,8 @@ features = ["blocking", "rustls", "minimal_traits"]
 default-features = false
 
 # ArangoDB driver
-[dependencies.arangors_lite]
-version = "0.2"
-features = ["rocksdb", "blocking", "rustls"]
+[dependencies.arangors]
+git = "https://github.com/Decarbonify/arangors.git"
+version = "0.5.0"
+features = ["rocksdb", "blocking"]#, "rustls"]
 default-features = false

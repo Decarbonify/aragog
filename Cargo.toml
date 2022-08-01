@@ -19,10 +19,10 @@ rust-version = "1.56.1"
 
 [features]
 default = ["derive", "openssl"]
-openssl = ["arangors_lite/openssl"]
-rustls = ["arangors_lite/rustls"]
-blocking = ["arangors_lite/blocking", "maybe-async/is_sync", "aragog-macros/blocking"]
-entreprise = ["arangors_lite/enterprise"]
+openssl = []#"arangors/openssl"]
+rustls = []#"arangors/rustls"]
+blocking = ["arangors/blocking", "maybe-async/is_sync", "aragog-macros/blocking"]
+entreprise = ["arangors/enterprise"]
 derive = ["aragog-macros"]
 minimal_traits = []
 
@@ -55,10 +55,11 @@ maybe-async = "0.2"
 aragog-macros = { path = "aragog_macros", version = "0.8", optional = true }
 
 # ArangoDB driver
-[dependencies.arangors_lite]
-version = "0.2"
+[dependencies.arangors]
+git = "https://github.com/Decarbonify/arangors.git"
+version = "0.5.0"
 features = ["rocksdb"]
-default-features = false
+# default-features = false
 
 [dev-dependencies]
 # We add the "feature" option to avoid serde version conflict somehow

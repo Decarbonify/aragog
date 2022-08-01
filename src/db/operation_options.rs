@@ -1,19 +1,23 @@
 #![allow(clippy::option_if_let_else)]
-use arangors_lite::document::options::{InsertOptions, RemoveOptions, UpdateOptions};
+use arangors::document::options::{InsertOptions, RemoveOptions, UpdateOptions};
 
 #[derive(Clone, Debug)]
-/// Struct defining some options for database `write` operations (create, update, delete)
+/// Struct defining some options for database `write` operations (create,
+/// update, delete)
 pub struct OperationOptions {
     /// Defines if aragog should wait for the operation to be written on disk
     ///
-    /// If set on `true` the requests might be slower. By default, the collection behavior is picked
+    /// If set on `true` the requests might be slower. By default, the
+    /// collection behavior is picked
     pub wait_for_sync: Option<bool>,
-    /// Defines if aragog should ignore the `ArangoDB` document revision system (`_rev` field)
+    /// Defines if aragog should ignore the `ArangoDB` document revision system
+    /// (`_rev` field)
     ///
-    /// If set on `false` the requests might be slower. By default, `true` is used as it is the
-    /// default `ArangoDB` behaviour
+    /// If set on `false` the requests might be slower. By default, `true` is
+    /// used as it is the default `ArangoDB` behaviour
     pub ignore_revs: bool,
-    /// Defines if the operation should ignore [`Record`] hooks. By default set to `true`
+    /// Defines if the operation should ignore [`Record`] hooks. By default set
+    /// to `true`
     ///
     /// [`Record`]: crate::Record
     pub ignore_hooks: bool,

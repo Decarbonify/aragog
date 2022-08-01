@@ -1,5 +1,6 @@
 use crate::query::{Query, QueryResult};
 use crate::{DatabaseAccess, DatabaseRecord, Error, Record};
+use arangors::uclient::ClientExt;
 
 /// The `Link` trait of the Aragog library.
 /// It allows to define a query relation between different models.
@@ -83,10 +84,11 @@ pub trait Link<T: Record + Send> {
 
     /// Retrieves the records matching the defined `link_query`. Type inference may be required.
     #[cfg(not(feature = "blocking"))]
-    async fn linked_models<D>(&self, db_access: &D) -> Result<QueryResult<T>, Error>
+    async fn linked_models<D, C>(&self, db_access: &D) -> Result<QueryResult<T>, Error>
     where
         Self: Sized,
-        D: DatabaseAccess + ?Sized,
+        C: ClientExt,
+        D: DatabaseAccess<C> + ?Sized,
         T: 'async_trait,
     {
         DatabaseRecord::get(&self.link_query(), db_access).await
@@ -94,9 +96,10 @@ pub trait Link<T: Record + Send> {
 
     /// Retrieves the records matching the defined `link_query`. Type inference may be required.
     #[cfg(feature = "blocking")]
-    fn linked_models<D>(&self, db_access: &D) -> Result<QueryResult<T>, Error>
+    fn linked_models<D, C>(&self, db_access: &D) -> Result<QueryResult<T>, Error>
     where
-        D: DatabaseAccess + ?Sized,
+        C: ClientExt,
+        D: DatabaseAccess<C> + ?Sized,
     {
         DatabaseRecord::get(&self.link_query(), db_access)
     }

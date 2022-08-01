@@ -1,17 +1,16 @@
 use std::ops::Deref;
 
-use arangors_lite::document::options::{InsertOptions, ReplaceOptions};
-use arangors_lite::Connection;
-use arangors_lite::{Collection, Database};
+use arangors::{
+    document::options::{InsertOptions, ReplaceOptions},
+    Collection, Connection, Database,
+};
 use serde::{Deserialize, Serialize};
 
 use aragog::schema::DatabaseSchema;
 
-use crate::config::Config;
-use crate::error::AragogCliError;
-use crate::log;
-use crate::log_level::LogLevel;
-use crate::migration::MigrationVersion;
+use crate::{
+    config::Config, error::AragogCliError, log, log_level::LogLevel, migration::MigrationVersion,
+};
 
 const SCHEMA_DOC_KEY: &str = "DatabaseSchema";
 
@@ -55,9 +54,7 @@ impl VersionedDatabase {
             Err(e) => {
                 log(
                     format!(
-                        "Failed to connect to database {}:\n\
-                           error: {}, \n\
-                           Trying to create it...",
+                        "Failed to connect to database {}:\nerror: {}, \nTrying to create it...",
                         &config.db_name, e
                     ),
                     LogLevel::Info,

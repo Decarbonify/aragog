@@ -2,11 +2,12 @@ use crate::db::database_record_dto::DatabaseRecordDto;
 use crate::error::ArangoHttpError;
 use crate::query::{Query, QueryCursor, QueryResult};
 use crate::{DatabaseAccess, DatabaseRecord, Error, OperationOptions, Record};
-use arangors_lite::{AqlOptions, AqlQuery};
+use arangors::uclient::ClientExt;
+use arangors::{AqlOptions, AqlQuery};
 use std::convert::TryInto;
 
 #[maybe_async::maybe_async]
-pub async fn update_record<T, D>(
+pub async fn update_record<T, D, C>(
     obj: DatabaseRecord<T>,
     key: &str,
     db_accessor: &D,
@@ -15,7 +16,8 @@ pub async fn update_record<T, D>(
 ) -> Result<DatabaseRecord<T>, Error>
 where
     T: Record,
-    D: DatabaseAccess + ?Sized,
+    C: ClientExt,
+    D: DatabaseAccess<C> + ?Sized,
 {
     log::debug!("Updating document {} {}", collection_name, key);
     let collection = db_accessor.get_collection(collection_name)?;
@@ -27,7 +29,7 @@ where
 }
 
 #[maybe_async::maybe_async]
-pub async fn create_record<T, D>(
+pub async fn create_record<T, D, C>(
     obj: T,
     key: Option<String>,
     db_accessor: &D,
@@ -36,7 +38,8 @@ pub async fn create_record<T, D>(
 ) -> Result<DatabaseRecord<T>, Error>
 where
     T: Record,
-    D: DatabaseAccess + ?Sized,
+    C: ClientExt,
+    D: DatabaseAccess<C> + ?Sized,
 {
     let collection = db_accessor.get_collection(collection_name)?;
     log::debug!("Creating new {} document", collection.name());
@@ -49,14 +52,15 @@ where
 }
 
 #[maybe_async::maybe_async]
-pub async fn retrieve_record<T, D>(
+pub async fn retrieve_record<T, D, C>(
     key: &str,
     db_accessor: &D,
     collection_name: &str,
 ) -> Result<DatabaseRecord<T>, Error>
 where
     T: Record,
-    D: DatabaseAccess + ?Sized,
+    C: ClientExt,
+    D: DatabaseAccess<C> + ?Sized,
 {
     log::debug!("Retrieving {} {} from database", collection_name, key);
     let collection = db_accessor.get_collection(collection_name)?;
@@ -81,7 +85,7 @@ where
 }
 
 #[maybe_async::maybe_async]
-pub async fn remove_record<T, D>(
+pub async fn remove_record<T, D, C>(
     key: &str,
     db_accessor: &D,
     collection_name: &str,
@@ -89,7 +93,8 @@ pub async fn remove_record<T, D>(
 ) -> Result<(), Error>
 where
     T: Record,
-    D: DatabaseAccess + ?Sized,
+    C: ClientExt,
+    D: DatabaseAccess<C> + ?Sized,
 {
     log::debug!("Removing {} {} from database", collection_name, key);
     let collection = db_accessor.get_collection(collection_name)?;
@@ -103,10 +108,11 @@ where
 }
 
 #[maybe_async::maybe_async]
-pub async fn raw_query_records<T, D>(db_accessor: &D, aql: &str) -> Result<QueryResult<T>, Error>
+pub async fn raw_query_records<T, D, C>(db_accessor: &D, aql: &str) -> Result<QueryResult<T>, Error>
 where
     T: Record,
-    D: DatabaseAccess + ?Sized,
+    C: ClientExt,
+    D: DatabaseAccess<C> + ?Sized,
 {
     log::debug!(
         "Querying {} records through AQL: `{}`",
@@ -121,10 +127,11 @@ where
 }
 
 #[maybe_async::maybe_async]
-pub async fn query_records<T, D>(db_accessor: &D, query: &Query) -> Result<QueryResult<T>, Error>
+pub async fn query_records<T, D, C>(db_accessor: &D, query: &Query) -> Result<QueryResult<T>, Error>
 where
     T: Record,
-    D: DatabaseAccess + ?Sized,
+    C: ClientExt,
+    D: DatabaseAccess<C> + ?Sized,
 {
     let aql = query.aql_str();
     log::debug!(
@@ -132,7 +139,7 @@ where
         T::COLLECTION_NAME,
         aql
     );
-    let mut aql_query = AqlQuery::new(&aql);
+    let mut aql_query = AqlQuery::builder().query(&aql).build();
     for (var, val) in &query.bind_vars {
         aql_query = aql_query.bind_var(var, val.clone());
     }
@@ -144,14 +151,15 @@ where
 }
 
 #[maybe_async::maybe_async]
-pub async fn query_records_in_batches<T, D>(
+pub async fn query_records_in_batches<T, D, C>(
     db_accessor: &D,
     query: &Query,
     batch_size: u32,
-) -> Result<QueryCursor<T>, Error>
+) -> Result<QueryCursor<T, C>, Error>
 where
     T: Record,
-    D: DatabaseAccess + ?Sized,
+    C: ClientExt,
+    D: DatabaseAccess<C> + ?Sized,
 {
     let aql = query.aql_str();
     log::debug!(

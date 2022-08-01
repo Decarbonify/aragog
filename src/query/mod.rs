@@ -5,6 +5,7 @@ use crate::query::query_id_helper::get_str_identifier;
 use crate::query::utils::{string_from_array, OptionalQueryString};
 use crate::undefined_record::UndefinedRecord;
 use crate::{DatabaseAccess, Error, Record};
+use arangors::uclient::ClientExt;
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use std::collections::HashMap;
@@ -676,9 +677,13 @@ impl Query {
     /// [`DatabaseAccess`]: crate::DatabaseAccess
     /// [`query`]: crate::DatabaseAccess::query
     #[maybe_async::maybe_async]
-    pub async fn raw_call<D>(&self, db_accessor: &D) -> Result<QueryResult<UndefinedRecord>, Error>
+    pub async fn raw_call<D, C>(
+        &self,
+        db_accessor: &D,
+    ) -> Result<QueryResult<UndefinedRecord>, Error>
     where
-        D: DatabaseAccess + ?Sized,
+        C: ClientExt,
+        D: DatabaseAccess<C> + ?Sized,
     {
         db_accessor.query(self).await
     }
@@ -691,9 +696,10 @@ impl Query {
     /// [`Record`]: crate::Record
     /// [`get`]: crate::Record::get
     #[maybe_async::maybe_async]
-    pub async fn call<D, T>(&self, db_accessor: &D) -> Result<QueryResult<T>, Error>
+    pub async fn call<D, T, C>(&self, db_accessor: &D) -> Result<QueryResult<T>, Error>
     where
-        D: DatabaseAccess + ?Sized,
+        C: ClientExt,
+        D: DatabaseAccess<C> + ?Sized,
         T: Record + Send,
     {
         T::get(self, db_accessor).await
@@ -709,13 +715,14 @@ impl Query {
     /// [`DatabaseAccess`]: crate::DatabaseAccess
     /// [`query_in_batches`]: crate::DatabaseAccess::query_in_batches
     #[maybe_async::maybe_async]
-    pub async fn raw_call_in_batches<D>(
+    pub async fn raw_call_in_batches<D, C>(
         &self,
         db_accessor: &D,
         batch_size: u32,
-    ) -> Result<QueryCursor<UndefinedRecord>, Error>
+    ) -> Result<QueryCursor<UndefinedRecord, C>, Error>
     where
-        D: DatabaseAccess + ?Sized,
+        C: ClientExt,
+        D: DatabaseAccess<C> + ?Sized,
     {
         db_accessor.query_in_batches(self, batch_size).await
     }
@@ -728,13 +735,14 @@ impl Query {
     /// [`Record`]: crate::Record
     /// [`get_in_batches`]: crate::Record::get_in_batches
     #[maybe_async::maybe_async]
-    pub async fn call_in_batches<D, T>(
+    pub async fn call_in_batches<D, T, C>(
         &self,
         db_accessor: &D,
         batch_size: u32,
-    ) -> Result<QueryCursor<T>, Error>
+    ) -> Result<QueryCursor<T, C>, Error>
     where
-        D: DatabaseAccess + ?Sized,
+        C: ClientExt,
+        D: DatabaseAccess<C> + ?Sized,
         T: Record + Send,
     {
         T::get_in_batches(self, db_accessor, batch_size).await

@@ -1,4 +1,5 @@
 use crate::{DatabaseAccess, DatabaseRecord, Error, Record, Validate};
+use arangors::uclient::ClientExt;
 use serde::{Deserialize, Serialize};
 use std::ops::{Deref, DerefMut};
 
@@ -52,9 +53,10 @@ impl<T: Record> EdgeRecord<T> {
 
     /// Retrieves the `from` document from the database
     #[maybe_async::maybe_async]
-    pub async fn from_record<D, R>(&self, db_access: &D) -> Result<DatabaseRecord<R>, Error>
+    pub async fn from_record<D, R, C>(&self, db_access: &D) -> Result<DatabaseRecord<R>, Error>
     where
-        D: DatabaseAccess + ?Sized,
+        C: ClientExt,
+        D: DatabaseAccess<C> + ?Sized,
         R: Record,
     {
         DatabaseRecord::find(self.key_from(), db_access).await
@@ -62,9 +64,10 @@ impl<T: Record> EdgeRecord<T> {
 
     /// Retrieves the `to` document from the database
     #[maybe_async::maybe_async]
-    pub async fn to_record<D, R>(&self, db_access: &D) -> Result<DatabaseRecord<R>, Error>
+    pub async fn to_record<D, R, C>(&self, db_access: &D) -> Result<DatabaseRecord<R>, Error>
     where
-        D: DatabaseAccess + ?Sized,
+        C: ClientExt,
+        D: DatabaseAccess<C> + ?Sized,
         R: Record,
     {
         DatabaseRecord::find(self.key_to(), db_access).await
@@ -152,46 +155,52 @@ impl<T: Record> Validate for EdgeRecord<T> {
 impl<T: Record + Send> Record for EdgeRecord<T> {
     const COLLECTION_NAME: &'static str = T::COLLECTION_NAME;
 
-    async fn before_create_hook<D>(&mut self, db_accessor: &D) -> Result<(), Error>
+    async fn before_create_hook<D, C>(&mut self, db_accessor: &D) -> Result<(), Error>
     where
-        D: DatabaseAccess + ?Sized,
+        C: ClientExt,
+        D: DatabaseAccess<C> + ?Sized,
     {
         self.validate()?;
         self.data.before_create_hook(db_accessor).await
     }
 
-    async fn before_save_hook<D>(&mut self, db_accessor: &D) -> Result<(), Error>
+    async fn before_save_hook<D, C>(&mut self, db_accessor: &D) -> Result<(), Error>
     where
-        D: DatabaseAccess + ?Sized,
+        C: ClientExt,
+        D: DatabaseAccess<C> + ?Sized,
     {
         self.data.before_save_hook(db_accessor).await
     }
 
-    async fn before_delete_hook<D>(&mut self, db_accessor: &D) -> Result<(), Error>
+    async fn before_delete_hook<D, C>(&mut self, db_accessor: &D) -> Result<(), Error>
     where
-        D: DatabaseAccess + ?Sized,
+        C: ClientExt,
+        D: DatabaseAccess<C> + ?Sized,
     {
         self.data.before_delete_hook(db_accessor).await
     }
 
-    async fn after_create_hook<D>(&mut self, db_accessor: &D) -> Result<(), Error>
+    async fn after_create_hook<D, C>(&mut self, db_accessor: &D) -> Result<(), Error>
     where
-        D: DatabaseAccess + ?Sized,
+        C: ClientExt,
+        D: DatabaseAccess<C> + ?Sized,
     {
         self.data.after_create_hook(db_accessor).await
     }
 
-    async fn after_save_hook<D>(&mut self, db_accessor: &D) -> Result<(), Error>
+    async fn after_save_hook<D, C>(&mut self, db_accessor: &D) -> Result<(), Error>
     where
-        D: DatabaseAccess + ?Sized,
+        C: ClientExt,
+        D: DatabaseAccess<C> + ?Sized,
     {
         self.validate()?;
         self.data.after_save_hook(db_accessor).await
     }
 
-    async fn after_delete_hook<D>(&mut self, db_accessor: &D) -> Result<(), Error>
+    async fn after_delete_hook<D, C>(&mut self, db_accessor: &D) -> Result<(), Error>
     where
-        D: DatabaseAccess + ?Sized,
+        C: ClientExt,
+        D: DatabaseAccess<C> + ?Sized,
     {
         self.data.after_delete_hook(db_accessor).await
     }

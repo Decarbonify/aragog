@@ -1,6 +1,6 @@
 #![allow(clippy::used_underscore_binding)]
 use crate::{DatabaseRecord, Error, Record};
-use arangors_lite::document::response::DocumentResponse;
+use arangors::document::response::DocumentResponse;
 use serde::{Deserialize, Serialize};
 use std::convert::TryInto;
 

@@ -1,6 +1,8 @@
 #![allow(clippy::redundant_pub_crate)]
 use std::convert::{TryFrom, TryInto};
 
+use arangors::uclient::ClientExt;
+
 use crate::schema::{DatabaseSchema, SCHEMA_DEFAULT_FILE_NAME, SCHEMA_DEFAULT_PATH};
 use crate::{AuthMode, DatabaseConnection, Error, OperationOptions};
 
@@ -103,7 +105,7 @@ impl DatabaseConnectionBuilder {
     /// If the provided credentials are wrong or if the database is not running the function will panic.
     /// If any of the previous env var is not specified the function will panic with an explanation message.
     #[maybe_async::maybe_async]
-    pub async fn build(self) -> Result<DatabaseConnection, Error> {
+    pub async fn build<C: ClientExt + Send>(self) -> Result<DatabaseConnection<C>, Error> {
         let credentials = self.credentials();
         let auth_mode = self.auth_mode();
         let apply_schema = self.apply_schema;

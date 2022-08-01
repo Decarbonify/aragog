@@ -1,8 +1,6 @@
-use arangors_lite::collection::response::Properties;
+use arangors::collection::response::Properties;
 
-use crate::config::Config;
-use crate::error::AragogCliError;
-use crate::versioned_database::VersionedDatabase;
+use crate::{config::Config, error::AragogCliError, versioned_database::VersionedDatabase};
 
 pub fn describe_db(config: &Config) -> Result<(), AragogCliError> {
     let db = VersionedDatabase::init(config)?;

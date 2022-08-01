@@ -1,4 +1,4 @@
-use arangors_lite::{AqlQuery, Document};
+use arangors::{AqlQuery, Document};
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use std::fmt::{self, Display, Formatter};
@@ -7,6 +7,7 @@ use crate::db::database_service;
 use crate::db::database_service::{query_records, query_records_in_batches, raw_query_records};
 use crate::query::{Query, QueryCursor, QueryResult};
 use crate::{DatabaseAccess, EdgeRecord, Error, OperationOptions, Record};
+use arangors::uclient::ClientExt;
 use std::ops::{Deref, DerefMut};
 
 /// Struct representing database stored documents.
@@ -37,14 +38,15 @@ pub struct DatabaseRecord<T> {
 #[allow(dead_code)]
 impl<T: Record> DatabaseRecord<T> {
     #[maybe_async::maybe_async]
-    async fn __create_with_options<D>(
+    async fn __create_with_options<D, C>(
         mut record: T,
         key: Option<String>,
         db_accessor: &D,
         options: OperationOptions,
     ) -> Result<Self, Error>
     where
-        D: DatabaseAccess + ?Sized,
+        C: ClientExt,
+        D: DatabaseAccess<C> + ?Sized,
     {
         let launch_hooks = !options.ignore_hooks;
         if launch_hooks {
@@ -89,13 +91,14 @@ impl<T: Record> DatabaseRecord<T> {
     /// [`Error`]: crate::Error
     /// [`DatabaseConnection`]: crate::DatabaseConnection
     #[maybe_async::maybe_async]
-    pub async fn create_with_options<D>(
+    pub async fn create_with_options<D, C>(
         record: T,
         db_accessor: &D,
         options: OperationOptions,
     ) -> Result<Self, Error>
     where
-        D: DatabaseAccess + ?Sized,
+        C: ClientExt,
+        D: DatabaseAccess<C> + ?Sized,
     {
         Self::__create_with_options(record, None, db_accessor, options).await
     }
@@ -131,14 +134,15 @@ impl<T: Record> DatabaseRecord<T> {
     /// [`Error`]: crate::Error
     /// [`DatabaseConnection`]: crate::DatabaseConnection
     #[maybe_async::maybe_async]
-    pub async fn create_with_key_and_options<D>(
+    pub async fn create_with_key_and_options<D, C>(
         record: T,
         key: String,
         db_accessor: &D,
         options: OperationOptions,
     ) -> Result<Self, Error>
     where
-        D: DatabaseAccess + ?Sized,
+        C: ClientExt,
+        D: DatabaseAccess<C> + ?Sized,
     {
         Self::__create_with_options(record, Some(key), db_accessor, options).await
     }
@@ -164,9 +168,10 @@ impl<T: Record> DatabaseRecord<T> {
     ///
     /// [`Error`]: crate::Error
     #[maybe_async::maybe_async]
-    pub async fn create<D>(record: T, db_accessor: &D) -> Result<Self, Error>
+    pub async fn create<D, C>(record: T, db_accessor: &D) -> Result<Self, Error>
     where
-        D: DatabaseAccess + ?Sized,
+        C: ClientExt,
+        D: DatabaseAccess<C> + ?Sized,
     {
         Self::create_with_options(record, db_accessor, db_accessor.operation_options()).await
     }
@@ -193,9 +198,14 @@ impl<T: Record> DatabaseRecord<T> {
     ///
     /// [`Error`]: crate::Error
     #[maybe_async::maybe_async]
-    pub async fn create_with_key<D>(record: T, key: String, db_accessor: &D) -> Result<Self, Error>
+    pub async fn create_with_key<D, C>(
+        record: T,
+        key: String,
+        db_accessor: &D,
+    ) -> Result<Self, Error>
     where
-        D: DatabaseAccess + ?Sized,
+        C: ClientExt,
+        D: DatabaseAccess<C> + ?Sized,
     {
         Self::create_with_key_and_options(record, key, db_accessor, db_accessor.operation_options())
             .await
@@ -228,9 +238,10 @@ impl<T: Record> DatabaseRecord<T> {
     ///
     /// [`Error`]: crate::Error
     #[maybe_async::maybe_async]
-    pub async fn force_create<D>(record: T, db_accessor: &D) -> Result<Self, Error>
+    pub async fn force_create<D, C>(record: T, db_accessor: &D) -> Result<Self, Error>
     where
-        D: DatabaseAccess + ?Sized,
+        C: ClientExt,
+        D: DatabaseAccess<C> + ?Sized,
     {
         Self::create_with_options(
             record,
@@ -270,13 +281,14 @@ impl<T: Record> DatabaseRecord<T> {
     /// [`Error`]: crate::Error
     /// [`DatabaseConnection`]: crate::DatabaseConnection
     #[maybe_async::maybe_async]
-    pub async fn save_with_options<D>(
+    pub async fn save_with_options<D, C>(
         &mut self,
         db_accessor: &D,
         options: OperationOptions,
     ) -> Result<(), Error>
     where
-        D: DatabaseAccess + ?Sized,
+        C: ClientExt,
+        D: DatabaseAccess<C> + ?Sized,
     {
         let launch_hooks = !options.ignore_hooks;
         if launch_hooks {
@@ -315,9 +327,10 @@ impl<T: Record> DatabaseRecord<T> {
     ///
     /// [`Error`]: crate::Error
     #[maybe_async::maybe_async]
-    pub async fn save<D>(&mut self, db_accessor: &D) -> Result<(), Error>
+    pub async fn save<D, C>(&mut self, db_accessor: &D) -> Result<(), Error>
     where
-        D: DatabaseAccess + ?Sized,
+        C: ClientExt,
+        D: DatabaseAccess<C> + ?Sized,
     {
         self.save_with_options(db_accessor, db_accessor.operation_options())
             .await
@@ -347,9 +360,10 @@ impl<T: Record> DatabaseRecord<T> {
     ///
     /// [`Error`]: crate::Error
     #[maybe_async::maybe_async]
-    pub async fn force_save<D>(&mut self, db_accessor: &D) -> Result<(), Error>
+    pub async fn force_save<D, C>(&mut self, db_accessor: &D) -> Result<(), Error>
     where
-        D: DatabaseAccess + ?Sized,
+        C: ClientExt,
+        D: DatabaseAccess<C> + ?Sized,
     {
         self.save_with_options(
             db_accessor,
@@ -388,19 +402,20 @@ impl<T: Record> DatabaseRecord<T> {
     /// [`Error`]: crate::Error
     /// [`DatabaseConnection`]: crate::DatabaseConnection
     #[maybe_async::maybe_async]
-    pub async fn delete_with_options<D>(
+    pub async fn delete_with_options<D, C>(
         &mut self,
         db_accessor: &D,
         options: OperationOptions,
     ) -> Result<(), Error>
     where
-        D: DatabaseAccess + ?Sized,
+        C: ClientExt,
+        D: DatabaseAccess<C> + ?Sized,
     {
         let launch_hooks = !options.ignore_hooks;
         if launch_hooks {
             self.record.before_delete_hook(db_accessor).await?;
         }
-        database_service::remove_record::<T, D>(
+        database_service::remove_record::<T, D, C>(
             self.key(),
             db_accessor,
             T::COLLECTION_NAME,
@@ -432,9 +447,10 @@ impl<T: Record> DatabaseRecord<T> {
     ///
     /// [`Error`]: crate::Error
     #[maybe_async::maybe_async]
-    pub async fn delete<D>(&mut self, db_accessor: &D) -> Result<(), Error>
+    pub async fn delete<D, C>(&mut self, db_accessor: &D) -> Result<(), Error>
     where
-        D: DatabaseAccess + ?Sized,
+        C: ClientExt,
+        D: DatabaseAccess<C> + ?Sized,
     {
         self.delete_with_options(db_accessor, db_accessor.operation_options())
             .await
@@ -465,9 +481,10 @@ impl<T: Record> DatabaseRecord<T> {
     ///
     /// [`Error`]: crate::Error
     #[maybe_async::maybe_async]
-    pub async fn force_delete<D>(&mut self, db_accessor: &D) -> Result<(), Error>
+    pub async fn force_delete<D, C>(&mut self, db_accessor: &D) -> Result<(), Error>
     where
-        D: DatabaseAccess + ?Sized,
+        C: ClientExt,
+        D: DatabaseAccess<C> + ?Sized,
     {
         self.delete_with_options(
             db_accessor,
@@ -516,7 +533,7 @@ impl<T: Record> DatabaseRecord<T> {
     /// # }
     /// ```
     #[maybe_async::maybe_async]
-    pub async fn link<A, B, D>(
+    pub async fn link<A, B, D, C>(
         from_record: &DatabaseRecord<A>,
         to_record: &DatabaseRecord<B>,
         db_accessor: &D,
@@ -525,7 +542,8 @@ impl<T: Record> DatabaseRecord<T> {
     where
         A: Record,
         B: Record,
-        D: DatabaseAccess + ?Sized,
+        C: ClientExt,
+        D: DatabaseAccess<C> + ?Sized,
         T: Record + Send,
     {
         let edge = EdgeRecord::new(
@@ -554,9 +572,10 @@ impl<T: Record> DatabaseRecord<T> {
     /// [`NotFound`]: crate::Error::NotFound
     /// [`UnprocessableEntity`]: crate::Error::UnprocessableEntity
     #[maybe_async::maybe_async]
-    pub async fn find<D>(key: &str, db_accessor: &D) -> Result<Self, Error>
+    pub async fn find<D, C>(key: &str, db_accessor: &D) -> Result<Self, Error>
     where
-        D: DatabaseAccess + ?Sized,
+        C: ClientExt,
+        D: DatabaseAccess<C> + ?Sized,
     {
         database_service::retrieve_record(key, db_accessor, T::COLLECTION_NAME).await
     }
@@ -578,9 +597,10 @@ impl<T: Record> DatabaseRecord<T> {
     /// [`NotFound`]:crate::Error::NotFound
     /// [`UnprocessableEntity`]:crate::Error::UnprocessableEntity
     #[maybe_async::maybe_async]
-    pub async fn reload<D>(self, db_accessor: &D) -> Result<Self, Error>
+    pub async fn reload<D, C>(self, db_accessor: &D) -> Result<Self, Error>
     where
-        D: DatabaseAccess + ?Sized,
+        C: ClientExt + Send,
+        D: DatabaseAccess<C> + ?Sized,
         T: Send,
     {
         T::find(self.key(), db_accessor).await
@@ -599,9 +619,10 @@ impl<T: Record> DatabaseRecord<T> {
     /// [`NotFound`]:crate::Error::NotFound
     /// [`UnprocessableEntity`]:crate::Error::UnprocessableEntity
     #[maybe_async::maybe_async]
-    pub async fn reload_mut<D>(&mut self, db_accessor: &D) -> Result<(), Error>
+    pub async fn reload_mut<D, C>(&mut self, db_accessor: &D) -> Result<(), Error>
     where
-        D: DatabaseAccess + ?Sized,
+        C: ClientExt + Send,
+        D: DatabaseAccess<C> + ?Sized,
         T: Send,
     {
         *self = T::find(self.key(), db_accessor).await?;
@@ -660,9 +681,10 @@ impl<T: Record> DatabaseRecord<T> {
     /// [`NotFound`]:crate::Error::NotFound
     /// [`UnprocessableEntity`]:crate::Error::UnprocessableEntity
     #[maybe_async::maybe_async]
-    pub async fn get<D>(query: &Query, db_accessor: &D) -> Result<QueryResult<T>, Error>
+    pub async fn get<D, C>(query: &Query, db_accessor: &D) -> Result<QueryResult<T>, Error>
     where
-        D: DatabaseAccess + ?Sized,
+        C: ClientExt,
+        D: DatabaseAccess<C> + ?Sized,
     {
         query_records(db_accessor, query).await
     }
@@ -716,13 +738,14 @@ impl<T: Record> DatabaseRecord<T> {
     /// [`NotFound`]:crate::Error::NotFound
     /// [`UnprocessableEntity`]:crate::Error::UnprocessableEntity
     #[maybe_async::maybe_async]
-    pub async fn get_in_batches<D>(
+    pub async fn get_in_batches<D, C>(
         query: &Query,
         db_accessor: &D,
         batch_size: u32,
-    ) -> Result<QueryCursor<T>, Error>
+    ) -> Result<QueryCursor<T, C>, Error>
     where
-        D: DatabaseAccess + ?Sized,
+        C: ClientExt,
+        D: DatabaseAccess<C> + ?Sized,
     {
         query_records_in_batches(db_accessor, query, batch_size).await
     }
@@ -771,9 +794,10 @@ impl<T: Record> DatabaseRecord<T> {
     /// [`NotFound`]:crate::Error::NotFound
     /// [`UnprocessableEntity`]:crate::Error::UnprocessableEntity
     #[maybe_async::maybe_async]
-    pub async fn aql_get<D>(query: &str, db_accessor: &D) -> Result<QueryResult<T>, Error>
+    pub async fn aql_get<D, C>(query: &str, db_accessor: &D) -> Result<QueryResult<T>, Error>
     where
-        D: DatabaseAccess + ?Sized,
+        C: ClientExt,
+        D: DatabaseAccess<C> + ?Sized,
     {
         raw_query_records(db_accessor, query).await
     }
@@ -934,9 +958,10 @@ impl<T: Record> DatabaseRecord<T> {
     /// # }
     /// ```
     #[maybe_async::maybe_async]
-    pub async fn exists<D>(query: &Query, db_accessor: &D) -> bool
+    pub async fn exists<D, C>(query: &Query, db_accessor: &D) -> bool
     where
-        D: DatabaseAccess + ?Sized,
+        C: ClientExt,
+        D: DatabaseAccess<C> + ?Sized,
     {
         let aql = query.aql_str();
         let aql_query = AqlQuery::new(&aql).batch_size(1).count(true);

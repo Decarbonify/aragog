@@ -1,7 +1,10 @@
 #[cfg(not(feature = "blocking"))]
 use std::future::Future;
 
-use arangors_lite::transaction::{Status, Transaction as TransactionLayer};
+use arangors::{
+    transaction::{Status, Transaction as TransactionLayer},
+    uclient::ClientExt,
+};
 
 pub use {
     transaction_builder::TransactionBuilder, transaction_connection::TransactionDatabaseConnection,
@@ -75,12 +78,12 @@ mod transaction_output;
 ///
 /// [`DatabaseConnection`]: crate::DatabaseConnection
 #[derive(Debug)]
-pub struct Transaction {
-    accessor: TransactionLayer,
-    database_connection: TransactionDatabaseConnection,
+pub struct Transaction<C: ClientExt> {
+    accessor: TransactionLayer<C>,
+    database_connection: TransactionDatabaseConnection<C>,
 }
 
-impl Transaction {
+impl<C: ClientExt> Transaction<C> {
     /// Transaction unique identifier
     #[must_use]
     #[inline]
@@ -103,7 +106,7 @@ impl Transaction {
     ///
     /// [`DatabaseConnection`]: crate::DatabaseConnection
     #[maybe_async::maybe_async]
-    pub async fn new(db_connection: &DatabaseConnection) -> Result<Self, Error> {
+    pub async fn new(db_connection: &DatabaseConnection<C>) -> Result<Self, Error> {
         TransactionBuilder::new().build(db_connection).await
     }
 
@@ -270,7 +273,7 @@ impl Transaction {
     #[cfg(not(feature = "blocking"))]
     pub async fn safe_execute<T, O, F>(&self, operations: O) -> Result<TransactionOutput<T>, Error>
     where
-        O: FnOnce(TransactionDatabaseConnection) -> F,
+        O: FnOnce(TransactionDatabaseConnection<C>) -> F,
         F: Future<Output = Result<T, Error>>,
     {
         log::trace!("Safely executing transactional operations..");
@@ -370,7 +373,7 @@ impl Transaction {
     /// [`DatabaseAccess`]: crate::DatabaseAccess
     #[must_use]
     #[inline]
-    pub const fn database_connection(&self) -> &TransactionDatabaseConnection {
+    pub const fn database_connection(&self) -> &TransactionDatabaseConnection<C> {
         &self.database_connection
     }
 }

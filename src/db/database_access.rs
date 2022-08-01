@@ -1,4 +1,5 @@
-use arangors_lite::Database;
+use arangors::uclient::ClientExt;
+use arangors::Database;
 
 use crate::db::database_collection::DatabaseCollection;
 use crate::db::database_service::{query_records, query_records_in_batches};
@@ -21,7 +22,7 @@ use crate::{Error, OperationOptions};
 ///
 /// [`DatabaseConnection`]: crate::DatabaseConnection
 #[maybe_async::maybe_async]
-pub trait DatabaseAccess: Sync {
+pub trait DatabaseAccess<C: ClientExt>: Sync {
     /// Defines the default operation options to use on `write` operations.
     ///
     /// This method will be used on:
@@ -39,10 +40,10 @@ pub trait DatabaseAccess: Sync {
     }
 
     /// Retrieves a Collection from the database accessor.
-    fn collection(&self, collection: &str) -> Option<&DatabaseCollection>;
+    fn collection(&self, collection: &str) -> Option<&DatabaseCollection<C>>;
 
     /// Retrieves a Collection from the database accessor.
-    fn get_collection(&self, collection: &str) -> Result<&DatabaseCollection, Error> {
+    fn get_collection(&self, collection: &str) -> Result<&DatabaseCollection<C>, Error> {
         self.collection(collection).ok_or(Error::NotFound {
             item: "Collection".to_string(),
             id: collection.to_string(),
@@ -52,7 +53,7 @@ pub trait DatabaseAccess: Sync {
 
     /// Retrieves the database object
     #[must_use]
-    fn database(&self) -> &Database;
+    fn database(&self) -> &Database<C>;
 
     /// Runs an AQL query and returns the found documents as undefined records.
     ///
@@ -86,7 +87,7 @@ pub trait DatabaseAccess: Sync {
         &self,
         query: &Query,
         batch_size: u32,
-    ) -> Result<QueryCursor<UndefinedRecord>, Error> {
+    ) -> Result<QueryCursor<UndefinedRecord, C>, Error> {
         query_records_in_batches(self, query, batch_size).await
     }
 }

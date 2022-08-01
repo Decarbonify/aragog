@@ -1,4 +1,5 @@
 use crate::{DatabaseAccess, Error, Record};
+use arangors::uclient::ClientExt;
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use std::ops::{Deref, DerefMut};
@@ -11,44 +12,50 @@ pub struct UndefinedRecord(pub Value);
 impl Record for UndefinedRecord {
     const COLLECTION_NAME: &'static str = "Undefined Collection";
 
-    async fn before_create_hook<D>(&mut self, _db_accessor: &D) -> Result<(), Error>
+    async fn before_create_hook<D, C>(&mut self, _db_accessor: &D) -> Result<(), Error>
     where
-        D: DatabaseAccess + ?Sized,
+        C: ClientExt,
+        D: DatabaseAccess<C> + ?Sized,
     {
         Ok(())
     }
 
-    async fn before_save_hook<D>(&mut self, _db_accessor: &D) -> Result<(), Error>
+    async fn before_save_hook<D, C>(&mut self, _db_accessor: &D) -> Result<(), Error>
     where
-        D: DatabaseAccess + ?Sized,
+        C: ClientExt,
+        D: DatabaseAccess<C> + ?Sized,
     {
         Ok(())
     }
 
-    async fn before_delete_hook<D>(&mut self, _db_accessor: &D) -> Result<(), Error>
+    async fn before_delete_hook<D, C>(&mut self, _db_accessor: &D) -> Result<(), Error>
     where
-        D: DatabaseAccess + ?Sized,
+        C: ClientExt,
+        D: DatabaseAccess<C> + ?Sized,
     {
         Ok(())
     }
 
-    async fn after_create_hook<D>(&mut self, _db_accessor: &D) -> Result<(), Error>
+    async fn after_create_hook<D, C>(&mut self, _db_accessor: &D) -> Result<(), Error>
     where
-        D: DatabaseAccess + ?Sized,
+        C: ClientExt,
+        D: DatabaseAccess<C> + ?Sized,
     {
         Ok(())
     }
 
-    async fn after_save_hook<D>(&mut self, _db_accessor: &D) -> Result<(), Error>
+    async fn after_save_hook<D, C>(&mut self, _db_accessor: &D) -> Result<(), Error>
     where
-        D: DatabaseAccess + ?Sized,
+        C: ClientExt,
+        D: DatabaseAccess<C> + ?Sized,
     {
         Ok(())
     }
 
-    async fn after_delete_hook<D>(&mut self, _db_accessor: &D) -> Result<(), Error>
+    async fn after_delete_hook<D, C>(&mut self, _db_accessor: &D) -> Result<(), Error>
     where
-        D: DatabaseAccess + ?Sized,
+        C: ClientExt,
+        D: DatabaseAccess<C> + ?Sized,
     {
         Ok(())
     }

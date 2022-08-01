@@ -1,14 +1,13 @@
-use arangors_lite::graph::{EdgeDefinition, Graph, GraphOptions};
-use arangors_lite::index::IndexSettings;
+use arangors::{
+    graph::{EdgeDefinition, Graph, GraphOptions},
+    index::IndexSettings,
+};
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 
 use aragog::schema::{CollectionSchema, GraphSchema, IndexSchema, SchemaDatabaseOperation};
 
-use crate::error::AragogCliError;
-use crate::log;
-use crate::log_level::LogLevel;
-use crate::VersionedDatabase;
+use crate::{error::AragogCliError, log, log_level::LogLevel, VersionedDatabase};
 
 #[derive(Debug, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]

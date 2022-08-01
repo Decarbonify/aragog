@@ -1,7 +1,9 @@
 use crate::error::{ArangoError, ArangoHttpError};
-use arangors_lite::ArangoError as DriverError;
-use std::error::Error;
-use std::fmt::{self, Display, Formatter};
+use arangors::ArangoError as DriverError;
+use std::{
+    error::Error,
+    fmt::{self, Display, Formatter},
+};
 
 /// Mapped Arango db error response
 #[derive(Debug, Clone)]
@@ -18,9 +20,7 @@ impl Display for DatabaseError {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         write!(
             f,
-            "code: {}\n\
-                   error_num: {}\n\
-                   message: {}",
+            "code: {}\nerror_num: {}\nmessage: {}",
             self.http_error, self.arango_error, self.message
         )
     }

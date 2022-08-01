@@ -1,15 +1,15 @@
 use crate::Error;
-use arangors_lite::Collection;
+use arangors::{uclient::ClientExt, Collection};
 use std::ops::Deref;
 
 /// Struct containing the connection information on a `ArangoDB` collection
 #[derive(Debug, Clone)]
-pub struct DatabaseCollection {
-    /// The collection wrapper accessor of `arangors_lite` crate driver
-    collection: Collection,
+pub struct DatabaseCollection<C: ClientExt> {
+    /// The collection wrapper accessor of `arangors` crate driver
+    collection: Collection<C>,
 }
 
-impl DatabaseCollection {
+impl<C: ClientExt> DatabaseCollection<C> {
     /// Name of the collection, exactly as defined in database
     #[must_use]
     #[inline]
@@ -36,14 +36,14 @@ impl DatabaseCollection {
     }
 }
 
-impl From<Collection> for DatabaseCollection {
-    fn from(collection: Collection) -> Self {
+impl<C: ClientExt> From<Collection<C>> for DatabaseCollection<C> {
+    fn from(collection: Collection<C>) -> Self {
         Self { collection }
     }
 }
 
-impl Deref for DatabaseCollection {
-    type Target = Collection;
+impl<C: ClientExt> Deref for DatabaseCollection<C> {
+    type Target = Collection<C>;
 
     fn deref(&self) -> &Self::Target {
         &self.collection

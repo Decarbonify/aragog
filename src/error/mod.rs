@@ -1,11 +1,11 @@
 use std::fmt::{self, Display, Formatter};
 
-use arangors_lite::ClientError;
+use arangors::ClientError;
 
+pub use arango_error::ArangoError;
+pub use arango_http_error::ArangoHttpError;
+pub use database_error::DatabaseError;
 use thiserror::private::AsDynError;
-pub use {
-    arango_error::ArangoError, arango_http_error::ArangoHttpError, database_error::DatabaseError,
-};
 
 mod arango_error;
 mod arango_http_error;

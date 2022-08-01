@@ -1,4 +1,4 @@
-use arangors_lite::{ClientError, Database};
+use arangors::{uclient::ClientExt, ClientError, Database};
 
 pub use {
     collection_schema::CollectionSchema, database_schema::DatabaseSchema,
@@ -18,8 +18,8 @@ pub const SCHEMA_DEFAULT_FILE_NAME: &str = "schema.yaml";
 /// Trait used for all schema elements allowing to synchronise schema changes.
 /// Used by `aragog_cli` for migrations and `DatabaseConnection`
 #[maybe_async::maybe_async]
-pub trait SchemaDatabaseOperation {
-    /// The `arangors_lite` type to retrieve with the `get` method
+pub trait SchemaDatabaseOperation<C: ClientExt + Send> {
+    /// The `arangors` type to retrieve with the `get` method
     type PoolType;
 
     /// Utility method to allow "silent" error handling
@@ -62,13 +62,13 @@ pub trait SchemaDatabaseOperation {
     /// On success the pool type is returned (`Ok(Some(elem))`, but on silenced error nothing is returned (`Ok(None)`)
     async fn apply_to_database(
         &self,
-        database: &Database,
+        database: &Database<C>,
         silent: bool,
     ) -> Result<Option<Self::PoolType>, ClientError>;
 
     /// Deletes the schema element from the database.
-    async fn drop(&self, database: &Database) -> Result<(), ClientError>;
+    async fn drop(&self, database: &Database<C>) -> Result<(), ClientError>;
 
     /// Retrieves the `arangors_lite` element from the schema element
-    async fn get(&self, database: &Database) -> Result<Self::PoolType, ClientError>;
+    async fn get(&self, database: &Database<C>) -> Result<Self::PoolType, ClientError>;
 }

@@ -1,10 +1,11 @@
-use crate::config::Config;
-use crate::error::AragogCliError;
-use crate::migration::Migration;
-use crate::migration_operation::MigrationOperation;
-use crate::versioned_database::VersionedDatabase;
-use arangors_lite::collection::{response::Info, CollectionType};
-use arangors_lite::index::IndexSettings;
+use crate::{
+    config::Config, error::AragogCliError, migration::Migration,
+    migration_operation::MigrationOperation, versioned_database::VersionedDatabase,
+};
+use arangors::{
+    collection::{response::Info, CollectionType},
+    index::IndexSettings,
+};
 
 pub fn discover_migration(
     db: &mut VersionedDatabase,

@@ -1,6 +1,7 @@
 use crate::schema::SchemaDatabaseOperation;
-use arangors_lite::index::{Index, IndexSettings};
-use arangors_lite::{ClientError, Database};
+use arangors::index::{Index, IndexSettings};
+use arangors::uclient::ClientExt;
+use arangors::{ClientError, Database};
 use serde::{Deserialize, Serialize};
 
 /// Aragog schema representation of an `ArangoDB` Index.
@@ -37,12 +38,12 @@ impl IndexSchema {
 }
 
 #[maybe_async::maybe_async]
-impl SchemaDatabaseOperation for IndexSchema {
+impl<C: ClientExt + Send> SchemaDatabaseOperation<C> for IndexSchema {
     type PoolType = Index;
 
     async fn apply_to_database(
         &self,
-        database: &Database,
+        database: &Database<C>,
         silent: bool,
     ) -> Result<Option<Self::PoolType>, ClientError> {
         log::debug!("Creating index {}", &self.name);
@@ -53,13 +54,13 @@ impl SchemaDatabaseOperation for IndexSchema {
         )
     }
 
-    async fn drop(&self, database: &Database) -> Result<(), ClientError> {
+    async fn drop(&self, database: &Database<C>) -> Result<(), ClientError> {
         log::debug!("Deleting index {}", &self.name);
         database.delete_index(&self.id()).await?;
         Ok(())
     }
 
-    async fn get(&self, database: &Database) -> Result<Self::PoolType, ClientError> {
+    async fn get(&self, database: &Database<C>) -> Result<Self::PoolType, ClientError> {
         database.index(&self.name).await
     }
 }

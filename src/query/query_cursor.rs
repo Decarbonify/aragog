@@ -1,4 +1,5 @@
-use arangors_lite::{Cursor, Database};
+use arangors::uclient::ClientExt;
+use arangors::{Cursor, Database};
 
 use crate::query::QueryResult;
 use crate::{DatabaseRecord, Record};
@@ -49,18 +50,22 @@ use crate::{DatabaseRecord, Record};
 /// # }
 /// ```
 #[derive(Debug)]
-pub struct QueryCursor<T> {
+pub struct QueryCursor<T, C: ClientExt> {
     pub(crate) cursor: Cursor<DatabaseRecord<T>>,
-    pub(crate) database: Database,
+    pub(crate) database: Database<C>,
     #[cfg(feature = "blocking")]
     pending_result: Option<QueryResult<T>>,
 }
 
-impl<T: Record> QueryCursor<T> {
+impl<T, C> QueryCursor<T, C>
+where
+    T: Record,
+    C: ClientExt,
+{
     #[must_use]
     #[inline]
     #[allow(clippy::missing_const_for_fn)]
-    pub(crate) fn new(cursor: Cursor<DatabaseRecord<T>>, database: Database) -> Self {
+    pub(crate) fn new(cursor: Cursor<DatabaseRecord<T>>, database: Database<C>) -> Self {
         Self {
             #[cfg(feature = "blocking")]
             pending_result: Some(cursor.result.clone().into()),

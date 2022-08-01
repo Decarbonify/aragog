@@ -1,3 +1,4 @@
+use arangors::uclient::ClientExt;
 use serde::de::DeserializeOwned;
 use serde::Serialize;
 
@@ -22,9 +23,10 @@ pub trait Record: DeserializeOwned + Serialize + Clone {
     ///
     /// [`DatabaseRecord`]: crate::DatabaseRecord
     /// [`find`]: crate::DatabaseRecord::find
-    async fn find<D>(key: &str, db_accessor: &D) -> Result<DatabaseRecord<Self>, Error>
+    async fn find<D, C>(key: &str, db_accessor: &D) -> Result<DatabaseRecord<Self>, Error>
     where
-        D: DatabaseAccess + ?Sized,
+        C: ClientExt + Send,
+        D: DatabaseAccess<C> + ?Sized,
     {
         DatabaseRecord::find(key, db_accessor).await
     }
@@ -34,9 +36,10 @@ pub trait Record: DeserializeOwned + Serialize + Clone {
     ///
     /// [`DatabaseRecord`]: crate::DatabaseRecord
     /// [`get`]: crate::DatabaseRecord::get
-    async fn get<D>(query: &Query, db_accessor: &D) -> Result<QueryResult<Self>, Error>
+    async fn get<D, C>(query: &Query, db_accessor: &D) -> Result<QueryResult<Self>, Error>
     where
-        D: DatabaseAccess + ?Sized,
+        C: ClientExt,
+        D: DatabaseAccess<C> + ?Sized,
     {
         DatabaseRecord::get(query, db_accessor).await
     }
@@ -46,13 +49,14 @@ pub trait Record: DeserializeOwned + Serialize + Clone {
     ///
     /// [`DatabaseRecord`]: crate::DatabaseRecord
     /// [`get_in_batches`]: crate::DatabaseRecord::get_in_batches
-    async fn get_in_batches<D>(
+    async fn get_in_batches<D, C>(
         query: &Query,
         db_accessor: &D,
         batch_size: u32,
-    ) -> Result<QueryCursor<Self>, Error>
+    ) -> Result<QueryCursor<Self, C>, Error>
     where
-        D: DatabaseAccess + ?Sized,
+        C: ClientExt,
+        D: DatabaseAccess<C> + ?Sized,
     {
         DatabaseRecord::get_in_batches(query, db_accessor, batch_size).await
     }
@@ -63,9 +67,10 @@ pub trait Record: DeserializeOwned + Serialize + Clone {
     /// [`DatabaseRecord`]: crate::DatabaseRecord
     /// [`exists`]: crate::DatabaseRecord::exists
     #[must_use]
-    async fn exists<D>(query: &Query, db_accessor: &D) -> bool
+    async fn exists<D, C>(query: &Query, db_accessor: &D) -> bool
     where
-        D: DatabaseAccess + ?Sized,
+        C: ClientExt,
+        D: DatabaseAccess<C> + ?Sized,
     {
         DatabaseRecord::<Self>::exists(query, db_accessor).await
     }
@@ -101,9 +106,10 @@ pub trait Record: DeserializeOwned + Serialize + Clone {
     /// ```
     /// [`DatabaseRecord`]: crate::DatabaseRecord
     /// [`create`]: crate::DatabaseRecord::create
-    async fn create<D>(record: Self, db_accessor: &D) -> Result<DatabaseRecord<Self>, Error>
+    async fn create<D, C>(record: Self, db_accessor: &D) -> Result<DatabaseRecord<Self>, Error>
     where
-        D: DatabaseAccess + ?Sized,
+        C: ClientExt + Send,
+        D: DatabaseAccess<C> + ?Sized,
     {
         DatabaseRecord::create(record, db_accessor).await
     }
@@ -135,9 +141,10 @@ pub trait Record: DeserializeOwned + Serialize + Clone {
     ///
     /// [`DatabaseRecord`]: crate::DatabaseRecord
     /// [`create`]: crate::DatabaseRecord::create
-    async fn before_create_hook<D>(&mut self, db_accessor: &D) -> Result<(), Error>
+    async fn before_create_hook<D, C>(&mut self, db_accessor: &D) -> Result<(), Error>
     where
-        D: DatabaseAccess + ?Sized;
+        C: ClientExt,
+        D: DatabaseAccess<C> + ?Sized;
 
     /// method called by [`DatabaseRecord`]::[`save`]
     /// before the database operation.
@@ -146,9 +153,10 @@ pub trait Record: DeserializeOwned + Serialize + Clone {
     ///
     /// [`DatabaseRecord`]: crate::DatabaseRecord
     /// [`save`]: crate::DatabaseRecord::save
-    async fn before_save_hook<D>(&mut self, db_accessor: &D) -> Result<(), Error>
+    async fn before_save_hook<D, C>(&mut self, db_accessor: &D) -> Result<(), Error>
     where
-        D: DatabaseAccess + ?Sized;
+        C: ClientExt,
+        D: DatabaseAccess<C> + ?Sized;
 
     /// method called by [`DatabaseRecord`]::[`delete`]
     /// before the database operation.
@@ -157,9 +165,10 @@ pub trait Record: DeserializeOwned + Serialize + Clone {
     ///
     /// [`DatabaseRecord`]: crate::DatabaseRecord
     /// [`delete`]: crate::DatabaseRecord::delete
-    async fn before_delete_hook<D>(&mut self, db_accessor: &D) -> Result<(), Error>
+    async fn before_delete_hook<D, C>(&mut self, db_accessor: &D) -> Result<(), Error>
     where
-        D: DatabaseAccess + ?Sized;
+        C: ClientExt,
+        D: DatabaseAccess<C> + ?Sized;
 
     /// method called automatically by [`DatabaseRecord`]::[`create`]
     /// after the database operation.
@@ -168,9 +177,10 @@ pub trait Record: DeserializeOwned + Serialize + Clone {
     ///
     /// [`DatabaseRecord`]: crate::DatabaseRecord
     /// [`create`]: crate::DatabaseRecord::create
-    async fn after_create_hook<D>(&mut self, db_accessor: &D) -> Result<(), Error>
+    async fn after_create_hook<D, C>(&mut self, db_accessor: &D) -> Result<(), Error>
     where
-        D: DatabaseAccess + ?Sized;
+        C: ClientExt,
+        D: DatabaseAccess<C> + ?Sized;
 
     /// method called automatically by [`DatabaseRecord`]::[`save`]
     /// after the database operation.
@@ -179,9 +189,10 @@ pub trait Record: DeserializeOwned + Serialize + Clone {
     ///
     /// [`DatabaseRecord`]: crate::DatabaseRecord
     /// [`save`]: crate::DatabaseRecord::save
-    async fn after_save_hook<D>(&mut self, db_accessor: &D) -> Result<(), Error>
+    async fn after_save_hook<D, C>(&mut self, db_accessor: &D) -> Result<(), Error>
     where
-        D: DatabaseAccess + ?Sized;
+        C: ClientExt,
+        D: DatabaseAccess<C> + ?Sized;
 
     /// method called automatically by [`DatabaseRecord`]::[`delete`]
     /// after the database operation.
@@ -190,9 +201,10 @@ pub trait Record: DeserializeOwned + Serialize + Clone {
     ///
     /// [`DatabaseRecord`]: crate::DatabaseRecord
     /// [`delete`]: crate::DatabaseRecord::delete
-    async fn after_delete_hook<D>(&mut self, db_accessor: &D) -> Result<(), Error>
+    async fn after_delete_hook<D, C>(&mut self, db_accessor: &D) -> Result<(), Error>
     where
-        D: DatabaseAccess + ?Sized;
+        C: ClientExt,
+        D: DatabaseAccess<C> + ?Sized;
 
     /// Returns a transaction builder on this collection only.
     #[must_use]
@@ -205,7 +217,9 @@ pub trait Record: DeserializeOwned + Serialize + Clone {
     /// # Arguments
     ///
     /// * `db_connection` - The current database connection
-    async fn transaction(db_connection: &DatabaseConnection) -> Result<Transaction, Error> {
+    async fn transaction<C: ClientExt + Send>(
+        db_connection: &DatabaseConnection<C>,
+    ) -> Result<Transaction<C>, Error> {
         Self::transaction_builder().build(db_connection).await
     }
 }

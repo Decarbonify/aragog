@@ -1,7 +1,8 @@
 use crate::db::database_collection::DatabaseCollection;
 use crate::transaction::{Transaction, TransactionDatabaseConnection};
 use crate::{DatabaseAccess, DatabaseConnection, Error, OperationOptions};
-use arangors_lite::transaction::{TransactionCollections, TransactionSettings};
+use arangors::transaction::{TransactionCollections, TransactionSettings};
+use arangors::uclient::ClientExt;
 use std::collections::HashMap;
 
 const LOCK_TIMEOUT: usize = 60000;
@@ -60,7 +61,10 @@ impl TransactionBuilder {
 
     /// Builds the transaction with the database connection
     #[maybe_async::maybe_async]
-    pub async fn build(self, db_connection: &DatabaseConnection) -> Result<Transaction, Error> {
+    pub async fn build<C: ClientExt>(
+        self,
+        db_connection: &DatabaseConnection<C>,
+    ) -> Result<Transaction<C>, Error> {
         let collection_names = self
             .collections
             .unwrap_or_else(|| db_connection.collections_names());

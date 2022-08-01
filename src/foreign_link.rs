@@ -1,4 +1,5 @@
 use crate::{DatabaseAccess, DatabaseRecord, Error, Record};
+use arangors::uclient::ClientExt;
 
 /// The `ForeignLink` trait of the Aragog library.
 /// It allows to define foreign_key relations between different models.
@@ -77,20 +78,22 @@ pub trait ForeignLink<T: Record> {
 
     /// Retrieves the record matching the defined `foreign_key`. Type inference may be required.
     #[cfg(not(feature = "blocking"))]
-    async fn linked_model<D>(&self, db_access: &D) -> Result<DatabaseRecord<T>, Error>
+    async fn linked_model<D, C>(&self, db_access: &D) -> Result<DatabaseRecord<T>, Error>
     where
         Self: Sized,
         T: 'async_trait,
-        D: DatabaseAccess + ?Sized,
+        C: ClientExt + Send,
+        D: DatabaseAccess<C> + ?Sized,
     {
         DatabaseRecord::find(self.foreign_key(), db_access).await
     }
 
     /// Retrieves the record matching the defined `foreign_key`. Type inference may be required.
     #[cfg(feature = "blocking")]
-    fn linked_model<D>(&self, db_access: &D) -> Result<DatabaseRecord<T>, Error>
+    fn linked_model<D, C>(&self, db_access: &D) -> Result<DatabaseRecord<T>, Error>
     where
-        D: DatabaseAccess + ?Sized,
+        C: ClientExt,
+        D: DatabaseAccess<C> + ?Sized,
     {
         DatabaseRecord::find(self.foreign_key(), db_access)
     }

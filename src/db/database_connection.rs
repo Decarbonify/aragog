@@ -1,6 +1,7 @@
 use std::collections::HashMap;
 
-use arangors_lite::{Connection, Database};
+use arangors::uclient::ClientExt;
+use arangors::{connection::Connection, Database};
 
 use crate::db::database_collection::DatabaseCollection;
 use crate::db::database_connection_builder::{
@@ -11,11 +12,11 @@ use crate::{DatabaseAccess, Error, OperationOptions};
 
 /// Struct containing `ArangoDB` connections and information to access the database, collections and documents
 #[derive(Clone, Debug)]
-pub struct DatabaseConnection {
+pub struct DatabaseConnection<C: ClientExt> {
     /// Map between a collection name and a `DatabaseCollection` instance
-    collections: HashMap<String, DatabaseCollection>,
+    collections: HashMap<String, DatabaseCollection<C>>,
     /// The database accessor
-    database: Database,
+    database: Database<C>,
     /// The default options for all `write` operations
     operation_options: OperationOptions,
 }
@@ -28,10 +29,10 @@ pub enum AuthMode {
     /// Recommended JWT authentication.
     ///
     /// # Note:
-    /// The JWT has a 1 month validity (see [`arangors_lite`] documentation)
+    /// The JWT has a 1 month validity (see [`arangors`] documentation)
     /// And can lead to issues on docker
     ///
-    /// [`arangors_lite`]: https://github.com/fMeow/arangors_lite
+    /// [`arangors`]: https://github.com/fMeow/arangors
     Jwt,
 }
 
@@ -41,7 +42,7 @@ impl Default for AuthMode {
     }
 }
 
-impl DatabaseConnection {
+impl<C: ClientExt + Send> DatabaseConnection<C> {
     /// Starts the builder for the database connection instance.
     ///
     /// For default use with env var
@@ -93,7 +94,7 @@ impl DatabaseConnection {
 
     #[maybe_async::maybe_async]
     pub(crate) async fn new(
-        database: Database,
+        database: Database<C>,
         schema: DatabaseSchema,
         apply_schema: bool,
         operation_options: OperationOptions,
@@ -115,7 +116,7 @@ impl DatabaseConnection {
         db_user: &str,
         db_password: &str,
         auth_mode: AuthMode,
-    ) -> Result<Database, Error> {
+    ) -> Result<Database<C>, Error> {
         log::info!("Connecting to database server on {} ...", db_host);
         let db_connection = match auth_mode {
             AuthMode::Basic => {
@@ -134,7 +135,7 @@ impl DatabaseConnection {
     }
 
     #[must_use]
-    pub(crate) fn collections(&self) -> Vec<&DatabaseCollection> {
+    pub(crate) fn collections(&self) -> Vec<&DatabaseCollection<C>> {
         self.collections.values().collect()
     }
 
@@ -145,7 +146,7 @@ impl DatabaseConnection {
     ///
     /// # Panics
     ///
-    /// If the truncate fails on some collection the method will panic, see the `arangors_lite` documentation
+    /// If the truncate fails on some collection the method will panic, see the `arangors` documentation
     /// on collection truncate.
     #[maybe_async::maybe_async]
     pub async fn truncate(&self) {
@@ -156,9 +157,9 @@ impl DatabaseConnection {
 
     #[maybe_async::maybe_async]
     async fn load_schema(
-        database: &Database,
+        database: &Database<C>,
         schema: DatabaseSchema,
-    ) -> Result<HashMap<String, DatabaseCollection>, Error> {
+    ) -> Result<HashMap<String, DatabaseCollection<C>>, Error> {
         log::info!(
             "Loading Schema with version {}",
             schema.version.unwrap_or(0)
@@ -179,16 +180,16 @@ impl DatabaseConnection {
     }
 }
 
-impl DatabaseAccess for DatabaseConnection {
+impl<C: ClientExt + Send> DatabaseAccess<C> for DatabaseConnection<C> {
     fn operation_options(&self) -> OperationOptions {
         self.operation_options.clone()
     }
 
-    fn collection(&self, collection: &str) -> Option<&DatabaseCollection> {
+    fn collection(&self, collection: &str) -> Option<&DatabaseCollection<C>> {
         self.collections.get(collection)
     }
 
-    fn database(&self) -> &Database {
+    fn database(&self) -> &Database<C> {
         &self.database
     }
 }
